@@ -41,8 +41,26 @@ def _blocks_for_page(page: DocumentPage) -> list[Block]:
         return page.blocks
     out: list[Block] = []
     for para in [p.strip() for p in page.text.split("\n\n") if p.strip()]:
-        lvl = heading_level(para) if "\n" not in para else 0
-        out.append(Block(text=para, block_type="heading" if lvl else "paragraph", level=lvl))
+        lines = para.split("\n")
+        buffer: list[str] = []
+
+        def flush() -> None:
+            if buffer:
+                out.append(Block(text="\n".join(buffer).strip(), block_type="paragraph", level=0))
+                buffer.clear()
+
+        for line in lines:
+            stripped = line.strip()
+            standalone = len(lines) == 1
+            explicit = bool(_NUMBERED.match(stripped)) or stripped.startswith("#") or bool(_ALLCAPS.match(stripped))
+            lvl = heading_level(line) if (standalone or explicit) else 0
+            # Inside a paragraph, only an explicit heading marker breaks the text apart.
+            if lvl and (standalone or explicit):
+                flush()
+                out.append(Block(text=stripped, block_type="heading", level=lvl))
+            else:
+                buffer.append(line)
+        flush()
     return out
 
 
