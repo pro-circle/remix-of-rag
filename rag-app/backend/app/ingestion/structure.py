@@ -55,7 +55,7 @@ def _blocks_for_page(page: DocumentPage) -> list[Block]:
             explicit = bool(_NUMBERED.match(stripped)) or stripped.startswith("#") or bool(_ALLCAPS.match(stripped))
             lvl = heading_level(line) if (standalone or explicit) else 0
             # Inside a paragraph, only an explicit heading marker breaks the text apart.
-            if lvl and (standalone or (explicit and (index == 0 or not buffer or True))):
+            if lvl and (standalone or explicit):
                 flush()
                 out.append(Block(text=stripped, block_type="heading", level=lvl))
             else:
