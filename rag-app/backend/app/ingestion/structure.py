@@ -49,7 +49,7 @@ def _blocks_for_page(page: DocumentPage) -> list[Block]:
                 out.append(Block(text="\n".join(buffer).strip(), block_type="paragraph", level=0))
                 buffer.clear()
 
-        for index, line in enumerate(lines):
+        for line in lines:
             stripped = line.strip()
             standalone = len(lines) == 1
             explicit = bool(_NUMBERED.match(stripped)) or stripped.startswith("#") or bool(_ALLCAPS.match(stripped))
