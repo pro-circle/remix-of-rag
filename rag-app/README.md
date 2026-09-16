@@ -167,7 +167,7 @@ Query body:
 SSE event sequence on `/api/query/stream` (`event:` + JSON `data:`):
 
 `query_started` → `query_analyzed` → `vector_search_complete` → `bm25_search_complete` →
-`hybrid_search_complete` → `reranking_started` / `reranking_complete` → `context_built` →
+`hybrid_search_complete` → `reranking_complete` → `context_built` →
 `generation_started` → many `token` → `generation_complete` → `usage` → `query_complete`.
 Errors arrive as an `error` event with a human-readable `message`.
 
@@ -200,7 +200,7 @@ cooldown pause more often. Live state is visible in `/api/health`.
 ## 8. Security notes
 
 - Uploads are extension- and size-checked, stored under a generated ID, and never executed;
-  filenames are sanitised before touching disk (`utils/files.py`).
+  filenames are sanitised before touching disk (`storage/files.py`).
 - Custom system prompts cannot override the master rules or the citation requirement.
 - API keys are read from the environment only and are never returned by any endpoint or log
   line; `/api/health` reports key *state*, not key values.
