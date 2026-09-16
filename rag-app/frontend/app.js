@@ -287,7 +287,7 @@ async function ask() {
   const query = $("queryInput").value.trim();
   if (query.length < 2) return toast("Type a question first.", true);
   if (state.busy) return;
-  state.busy = true; $("askBtn").disabled = true; $("askBtn").textContent = "Working…";
+  state.busy = true; $("askBtn").disabled = true; $("askBtn").textContent = "…";
 
   state.answer = ""; state.chunks = [];
   $("userMessage").textContent = query;
@@ -333,7 +333,7 @@ async function ask() {
     toast(err.message, true);
     setStage("generate", "failed", "failed");
   } finally {
-    state.busy = false; $("askBtn").disabled = false; $("askBtn").textContent = "Generate ↑";
+    state.busy = false; $("askBtn").disabled = false; $("askBtn").textContent = "↑";
   }
 }
 
@@ -400,7 +400,11 @@ function jumpToCitation(index) {
   const cite = last?.citations?.find((c) => String(c.index) === String(index));
   if (!cite) return;
   const el = $(`chunk-${cite.chunk_id}`);
-  if (el) { el.open = true; el.scrollIntoView({ behavior: "smooth", block: "center" }); }
+  if (el) {
+    $("tabEvidence").checked = true;
+    el.open = true;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
 }
 
 /* ---------- init ---------- */
