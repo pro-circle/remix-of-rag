@@ -6,3 +6,4 @@
 - [x] Convert asking and generation into a chat-style flow.
 - [x] Load document previews page-by-page and stream answer text incrementally.
 - [x] Validate the build, syntax, live preview, and full Python test suite.
+- [x] Replace the Brutalist Pop dashboard with the selected Cloud White focused-sidebar workspace.
