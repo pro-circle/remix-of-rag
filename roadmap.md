@@ -1,0 +1,8 @@
+# RAG workspace redesign
+
+- [x] Apply the selected technical workspace composition and Brutalist Pop theme.
+- [x] Put the retrieval workflow first and align the document, chat, evidence, and metrics areas.
+- [x] Keep one default document and create file-derived suggested questions.
+- [x] Convert asking and generation into a chat-style flow.
+- [x] Load document previews page-by-page and stream answer text incrementally.
+- [ ] Validate tests and the live preview.

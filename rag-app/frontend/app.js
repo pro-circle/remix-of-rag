@@ -165,6 +165,8 @@ async function uploadFile(file) {
   try {
     const doc = await api("/api/documents/upload", { method: "POST", body });
     status.textContent = `Ready — ${doc.name} (${doc.chunks} chunks)`;
+    state.selected = new Set([doc.document_id]);
+    sessionStorage.setItem("rag_selected", JSON.stringify([...state.selected]));
     await loadDocs();
     openDocument(doc.document_id);
   } catch (err) {
