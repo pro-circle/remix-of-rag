@@ -1,0 +1,65 @@
+NORTHWIND ANALYTICS DEVELOPER HANDBOOK
+Fictional sample document for demonstration only
+
+1. Engineering Principles
+We optimise for readable code, small reviewable changes and reversible deployments. A
+change that cannot be rolled back within ten minutes needs an explicit migration plan.
+
+2. Repository Layout
+Each service owns a single repository containing its application code, infrastructure
+definitions, tests and runbook. Shared libraries live in the platform monorepo and are
+versioned with semantic versioning.
+
+3. Development Workflow
+3.1 Branching
+Trunk-based development is used. Feature branches live for less than three days and are
+merged behind feature flags when incomplete.
+
+3.2 Code Review
+Every change requires one approving review; changes to authentication, authorization or
+billing code require two, one of which must come from the owning team. Reviewers check
+correctness, tests, logging and error handling before style.
+
+3.3 Testing Requirements
+Unit tests are mandatory for business logic. Integration tests are mandatory for any code
+path that touches the database or an external API. A pull request that reduces coverage on
+a security-relevant module is blocked automatically.
+
+4. Secrets Handling
+Secrets are read from environment variables injected by the deployment platform. Secrets
+must never be committed, printed to logs, or embedded in front-end bundles. Local
+development uses a personal .env file that is git-ignored. Rotating a secret requires
+updating the secret store and redeploying; no code change should be needed.
+
+5. API Design
+APIs are versioned in the path. Request bodies are validated with a schema at the
+boundary, and validation failures return a stable machine-readable error code. Endpoints
+that accept file uploads must validate extension, declared content type, magic bytes and
+size before writing anything to disk.
+
+6. Observability
+Every request carries a request id that is logged with the service name, route, status and
+duration. Structured JSON logging is required. Traces are sampled at 10 percent in
+production and 100 percent in staging. Dashboards must show latency percentiles, not
+averages.
+
+7. Performance Guidelines
+Load machine-learning models once at process start rather than per request. Batch
+embedding and inference calls where the API supports it. Never block the event loop with
+CPU-bound work; move it to a worker or thread pool. Cache derived artefacts that are
+expensive to recompute and cheap to store.
+
+8. Deployment
+Deployments run through the standard pipeline: build, test, security scan, staging
+deploy, smoke test, production canary at five percent, then full rollout. A failed canary
+rolls back automatically.
+
+9. On-Call Expectations
+On-call engineers acknowledge pages within 15 minutes during their shift. Runbooks must be
+current; an alert without a runbook link is treated as a defect. Handover notes are written
+at the end of every shift.
+
+10. Access to Production
+Production access is time-bound and requested through the access tool. Read-only access to
+logs is granted per team. Direct database writes in production require a second engineer
+present and an entry in the change log.

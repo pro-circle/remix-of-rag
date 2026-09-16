@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RAG using LangChain</title>
+<link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+<header class="topbar">
+  <h1>RAG using LangChain</h1>
+  <div class="topmeta">
+    <span id="metaDocs">0 documents</span>
+    <span id="metaModel">model —</span>
+    <span id="metaSession">session 0 tokens</span>
+    <span id="metaHealth" class="badge">checking…</span>
+  </div>
+</header>
+
+<main class="grid">
+  <!-- Documents -->
+  <section class="card docs">
+    <div class="card-head">
+      <h2>Documents</h2>
+      <label class="upload">
+        Upload
+        <input id="fileInput" type="file" accept=".pdf,.docx,.txt,.md" hidden />
+      </label>
+    </div>
+    <p id="uploadStatus" class="status hidden"></p>
+    <ul id="docList" class="doclist"></ul>
+    <p class="hint">Select documents to search. None selected = search all.</p>
+  </section>
+
+  <!-- Ask -->
+  <section class="card ask">
+    <div class="card-head"><h2>Ask the knowledge base</h2></div>
+    <textarea id="queryInput" rows="3" placeholder="What are the main authentication requirements?"></textarea>
+    <div class="examples" id="examples"></div>
+    <div class="askrow">
+      <select id="modelSelect" aria-label="Model">
+        <option value="auto">Auto (20B, 120B for complex)</option>
+      </select>
+      <button id="askBtn" class="primary">Ask</button>
+      <button id="promptToggle" class="ghost" type="button">System prompt</button>
+    </div>
+    <p id="modelHint" class="hint"></p>
+    <div id="promptBox" class="hidden">
+      <textarea id="systemPrompt" rows="4"></textarea>
+      <p class="hint">Optional. Master safety and citation rules are always applied on top.</p>
+    </div>
+  </section>
+
+  <!-- Workflow -->
+  <section class="card workflow">
+    <div class="card-head"><h2>Retrieval workflow</h2><span id="stageNote" class="hint"></span></div>
+    <ol id="stages" class="stages"></ol>
+  </section>
+
+  <!-- Retrieved + Answer -->
+  <section class="card chunks">
+    <div class="card-head"><h2>Retrieved content</h2><span id="chunkCount" class="hint"></span></div>
+    <div id="chunkList" class="chunklist"><p class="hint">Ask a question to see retrieved chunks.</p></div>
+  </section>
+
+  <section class="card answer">
+    <div class="card-head"><h2>Answer</h2><span id="answerModel" class="hint"></span></div>
+    <div id="answerBody" class="answerbody"><p class="hint">The answer streams here.</p></div>
+    <div id="citations" class="citations"></div>
+  </section>
+
+  <!-- Usage -->
+  <section class="card usage">
+    <div class="card-head"><h2>Query usage</h2></div>
+    <table class="kv" id="usageTable"><tbody></tbody></table>
+    <div class="card-head"><h2>Latency</h2></div>
+    <table class="kv" id="latencyTable"><tbody></tbody></table>
+    <div class="card-head"><h2>Session usage</h2></div>
+    <table class="kv" id="sessionTable"><tbody></tbody></table>
+  </section>
+
+  <!-- Preview -->
+  <section class="card preview">
+    <div class="card-head"><h2 id="previewTitle">Document preview</h2><span id="previewMeta" class="hint"></span></div>
+    <div class="previewrow">
+      <select id="pageSelect" class="hidden" aria-label="Page"></select>
+      <select id="sectionSelect" class="hidden" aria-label="Section"></select>
+    </div>
+    <pre id="previewBody" class="previewbody">Select a document to preview its extracted text.</pre>
+  </section>
+</main>
+
+<div id="toast" class="toast hidden"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>
