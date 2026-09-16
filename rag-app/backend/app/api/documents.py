@@ -38,25 +38,28 @@ def get_document(document_id: str) -> dict:
     if not doc:
         raise RagError("Document not found.", 404)
     chunks = services.vector_store.get_document_chunks(document_id)
-    sections: list[str] = []
+    sections: list[dict] = []
+    seen: set[str] = set()
     for c in chunks:
         title = c.metadata.get("section")
-        if title and title not in sections:
-            sections.append(title)
+        if title and title not in seen:
+            seen.add(title)
+            sections.append({"title": title, "page": c.metadata.get("page", 1)})
     return {
         **doc,
         "sections": sections,
-        "pages_text": services.registry.load_text(document_id),
-        "chunk_previews": [
-            {
-                "chunk_id": c.chunk_id,
-                "page": c.metadata.get("page"),
-                "section": c.metadata.get("section"),
-                "token_count": c.metadata.get("token_count"),
-            }
-            for c in chunks[:200]
-        ],
     }
+
+
+@router.get("/{document_id}/pages/{page_number}")
+def get_document_page(document_id: str, page_number: int) -> dict:
+    if not services.registry.get(document_id):
+        raise RagError("Document not found.", 404)
+    pages = services.registry.load_text(document_id)
+    page = next((p for p in pages if int(p.get("page", 0)) == page_number), None)
+    if not page:
+        raise RagError("Page not found.", 404)
+    return page
 
 
 @router.delete("/{document_id}")

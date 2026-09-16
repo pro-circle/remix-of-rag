@@ -87,6 +87,7 @@ class DocumentSummary(BaseModel):
     chunks: int
     tokens: int
     is_sample: bool = False
+    suggestions: list[str] = []
     uploaded_at: float
 
 
