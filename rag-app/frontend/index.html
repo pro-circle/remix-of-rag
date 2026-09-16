@@ -1,96 +1,78 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>RAG using LangChain</title>
-<link rel="stylesheet" href="/static/styles.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="A local RAG workspace for fast, cited document analysis." />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="RAG Document Analysis Workspace" />
+  <meta property="og:description" content="Upload a document, inspect retrieval, and generate cited answers." />
+  <meta name="twitter:card" content="summary" />
+  <title>RAG Document Analysis Workspace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
 <header class="topbar">
-  <h1>RAG using LangChain</h1>
+  <div class="brandmark">R</div>
+  <div><h1>RAG Workspace</h1><p>Document analysis command center</p></div>
   <div class="topmeta">
-    <span id="metaDocs">0 documents</span>
-    <span id="metaModel">model —</span>
-    <span id="metaSession">session 0 tokens</span>
-    <span id="metaHealth" class="badge">checking…</span>
+    <span id="metaDocs">0 documents</span><span id="metaModel">model —</span>
+    <span id="metaSession">session 0 tokens</span><span id="metaHealth" class="badge">checking…</span>
   </div>
 </header>
 
-<main class="grid">
-  <!-- Documents -->
-  <section class="card docs">
-    <div class="card-head">
-      <h2>Documents</h2>
-      <label class="upload">
-        Upload
-        <input id="fileInput" type="file" accept=".pdf,.docx,.txt,.md" hidden />
-      </label>
-    </div>
-    <p id="uploadStatus" class="status hidden"></p>
-    <ul id="docList" class="doclist"></ul>
-    <p class="hint">Select documents to search. None selected = search all.</p>
-  </section>
-
-  <!-- Ask -->
-  <section class="card ask">
-    <div class="card-head"><h2>Ask the knowledge base</h2></div>
-    <textarea id="queryInput" rows="3" placeholder="What are the main authentication requirements?"></textarea>
-    <div class="examples" id="examples"></div>
-    <div class="askrow">
-      <select id="modelSelect" aria-label="Model">
-        <option value="auto">Auto (20B, 120B for complex)</option>
-      </select>
-      <button id="askBtn" class="primary">Ask</button>
-      <button id="promptToggle" class="ghost" type="button">System prompt</button>
-    </div>
-    <p id="modelHint" class="hint"></p>
-    <div id="promptBox" class="hidden">
-      <textarea id="systemPrompt" rows="4"></textarea>
-      <p class="hint">Optional. Master safety and citation rules are always applied on top.</p>
-    </div>
-  </section>
-
-  <!-- Workflow -->
-  <section class="card workflow">
-    <div class="card-head"><h2>Retrieval workflow</h2><span id="stageNote" class="hint"></span></div>
+<main class="workspace">
+  <section class="workflow panel">
+    <div class="section-title"><div><span class="eyebrow">Live pipeline</span><h2>Retrieval workflow</h2></div><span id="stageNote" class="hint"></span></div>
     <ol id="stages" class="stages"></ol>
   </section>
 
-  <!-- Retrieved + Answer -->
-  <section class="card chunks">
-    <div class="card-head"><h2>Retrieved content</h2><span id="chunkCount" class="hint"></span></div>
-    <div id="chunkList" class="chunklist"><p class="hint">Ask a question to see retrieved chunks.</p></div>
-  </section>
+  <div class="workgrid">
+    <aside class="left-rail">
+      <section class="panel docs">
+        <div class="section-title"><div><span class="eyebrow">Knowledge base</span><h2>Documents</h2></div><label class="upload" title="Upload document">＋<input id="fileInput" type="file" accept=".pdf,.docx,.txt,.md" hidden /></label></div>
+        <p id="uploadStatus" class="status hidden"></p><ul id="docList" class="doclist"></ul>
+        <p class="hint">Choose one document for focused answers.</p>
+      </section>
 
-  <section class="card answer">
-    <div class="card-head"><h2>Answer</h2><span id="answerModel" class="hint"></span></div>
-    <div id="answerBody" class="answerbody"><p class="hint">The answer streams here.</p></div>
-    <div id="citations" class="citations"></div>
-  </section>
+      <section class="panel preview">
+        <div class="section-title"><div><span class="eyebrow">Source viewer</span><h2 id="previewTitle">Document preview</h2></div><button id="previewToggle" class="icon-button" type="button" title="Collapse preview">⌃</button></div>
+        <span id="previewMeta" class="hint"></span>
+        <div id="previewPanel"><div class="previewrow"><select id="pageSelect" class="hidden" aria-label="Page"></select><select id="sectionSelect" class="hidden" aria-label="Section"></select></div>
+        <pre id="previewBody" class="previewbody">Select a document to preview its extracted text.</pre></div>
+      </section>
+    </aside>
 
-  <!-- Usage -->
-  <section class="card usage">
-    <div class="card-head"><h2>Query usage</h2></div>
-    <table class="kv" id="usageTable"><tbody></tbody></table>
-    <div class="card-head"><h2>Latency</h2></div>
-    <table class="kv" id="latencyTable"><tbody></tbody></table>
-    <div class="card-head"><h2>Session usage</h2></div>
-    <table class="kv" id="sessionTable"><tbody></tbody></table>
-  </section>
+    <section class="panel chat-panel">
+      <div class="section-title"><div><span class="eyebrow">Grounded conversation</span><h2>Ask your document</h2></div><span id="answerModel" class="hint"></span></div>
+      <div id="chatScroll" class="chat-scroll">
+        <div class="assistant-intro"><div class="assistant-mark">R</div><div><strong>Ready to investigate.</strong><p>Choose a suggested question or ask anything supported by the selected document.</p></div></div>
+        <div id="userMessage" class="user-message hidden"></div>
+        <div id="answerBody" class="answerbody"><p class="hint">Your cited answer will appear here.</p></div>
+        <div id="citations" class="citations"></div>
+      </div>
+      <div class="composer">
+        <div class="examples" id="examples"></div>
+        <textarea id="queryInput" rows="2" placeholder="Ask a question about the selected document…"></textarea>
+        <div class="askrow"><select id="modelSelect" aria-label="Model"><option value="auto">Auto model</option></select><button id="promptToggle" class="ghost" type="button">System prompt</button><button id="askBtn" class="primary">Generate ↑</button></div>
+        <p id="modelHint" class="hint"></p>
+        <div id="promptBox" class="hidden"><textarea id="systemPrompt" rows="4"></textarea><p class="hint">Safety and citation rules remain active.</p></div>
+      </div>
+    </section>
 
-  <!-- Preview -->
-  <section class="card preview">
-    <div class="card-head"><h2 id="previewTitle">Document preview</h2><span id="previewMeta" class="hint"></span></div>
-    <div class="previewrow">
-      <select id="pageSelect" class="hidden" aria-label="Page"></select>
-      <select id="sectionSelect" class="hidden" aria-label="Section"></select>
-    </div>
-    <pre id="previewBody" class="previewbody">Select a document to preview its extracted text.</pre>
+    <aside class="right-rail">
+      <section class="panel chunks"><div class="section-title"><div><span class="eyebrow">Evidence</span><h2>Retrieved content</h2></div><span id="chunkCount" class="hint"></span></div><div id="chunkList" class="chunklist"><p class="hint">Run a query to inspect ranked chunks.</p></div></section>
+    </aside>
+  </div>
+
+  <section class="panel usage">
+    <div class="metric-group"><div class="section-title"><h2>Query usage</h2></div><table class="kv" id="usageTable"><tbody></tbody></table></div>
+    <div class="metric-group"><div class="section-title"><h2>Latency</h2></div><table class="kv" id="latencyTable"><tbody></tbody></table></div>
+    <div class="metric-group"><div class="section-title"><h2>Session usage</h2></div><table class="kv" id="sessionTable"><tbody></tbody></table></div>
   </section>
 </main>
-
-<div id="toast" class="toast hidden"></div>
-<script src="/static/app.js"></script>
-</body>
-</html>
+<div id="toast" class="toast hidden"></div><script src="/static/app.js"></script>
+</body></html>

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import time
+import re
 from pathlib import Path
 
 from .chunking.semantic import SemanticChunker
@@ -88,7 +89,9 @@ class Services:
         if not sample_dir.exists():
             return
         existing = {d["name"] for d in self.registry.all()}
-        for path in sorted(sample_dir.iterdir()):
+        # Keep the first-run workspace focused: one useful default document.
+        sample_paths = [sample_dir / "security_policy.txt"]
+        for path in sample_paths:
             if path.suffix.lower() not in SUPPORTED_EXTENSIONS or path.name in existing:
                 continue
             try:
@@ -109,6 +112,18 @@ class Services:
         self.registry.save_text(
             document_id, [{"page": p.page_number, "text": p.text} for p in parsed.pages]
         )
+        sections = []
+        for chunk in chunks:
+            section = str(chunk.metadata.get("section") or "").strip()
+            if section and section.lower() not in {s.lower() for s in sections}:
+                sections.append(section)
+        subject = re.sub(r"[_-]+", " ", Path(safe_name).stem).strip()
+        suggestions = [f"Summarize the key points in {subject}."]
+        for section in sections[:2]:
+            suggestions.append(f"What does the document say about {section}?")
+        if len(sections) > 1:
+            suggestions.append(f"Compare {sections[0]} and {sections[1]}.")
+        suggestions = suggestions[:4]
         doc = {
             "document_id": document_id,
             "name": safe_name,
@@ -119,6 +134,7 @@ class Services:
             "chunks": len(chunks),
             "tokens": sum(c.metadata.get("token_count", 0) for c in chunks),
             "is_sample": is_sample,
+            "suggestions": suggestions,
             "uploaded_at": time.time(),
         }
         self.registry.upsert(doc)
