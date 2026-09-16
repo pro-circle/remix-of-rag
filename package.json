@@ -2,7 +2,7 @@
   "name": "rag-using-langchain",
   "private": true,
   "scripts": {
-    "dev": "python3 -m http.server 8080 --directory site",
+    "dev": "node scripts/dev-server.mjs",
     "build": "echo \"no build step\"",
     "build:dev": "echo \"no build step\""
   }
