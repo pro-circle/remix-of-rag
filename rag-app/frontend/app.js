@@ -151,6 +151,8 @@ async function loadDocs() {
   if (state.selected.size > 1) state.selected = new Set([[...state.selected][0]]);
   sessionStorage.setItem("rag_selected", JSON.stringify([...state.selected]));
   renderDocs();
+  const selectedId = [...state.selected][0];
+  if (selectedId) openDocument(selectedId);
 }
 
 const UPLOAD_STAGES = ["Uploading…", "Parsing…", "Analyzing structure…", "Chunking…", "Generating embeddings…", "Indexing…"];

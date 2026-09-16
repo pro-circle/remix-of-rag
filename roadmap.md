@@ -5,4 +5,5 @@
 - [x] Keep one default document and create file-derived suggested questions.
 - [x] Convert asking and generation into a chat-style flow.
 - [x] Load document previews page-by-page and stream answer text incrementally.
-- [ ] Validate tests and the live preview.
+- [x] Validate the build, syntax, and live preview.
+- [ ] Run the full Python tests (waiting for the isolated test environment setup).
