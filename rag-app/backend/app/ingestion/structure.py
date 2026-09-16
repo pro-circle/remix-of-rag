@@ -41,8 +41,23 @@ def _blocks_for_page(page: DocumentPage) -> list[Block]:
         return page.blocks
     out: list[Block] = []
     for para in [p.strip() for p in page.text.split("\n\n") if p.strip()]:
-        lvl = heading_level(para) if "\n" not in para else 0
-        out.append(Block(text=para, block_type="heading" if lvl else "paragraph", level=lvl))
+        lines = para.split("\n")
+        buffer: list[str] = []
+
+        def flush() -> None:
+            if buffer:
+                out.append(Block(text="\n".join(buffer).strip(), block_type="paragraph", level=0))
+                buffer.clear()
+
+        for line in lines:
+            # A heading only counts when it stands on its own line.
+            lvl = heading_level(line) if _NUMBERED.match(line.strip()) or line.strip().startswith("#") else 0
+            if lvl and (len(lines) == 1 or line is lines[0] or True):
+                flush()
+                out.append(Block(text=line.strip(), block_type="heading", level=lvl))
+            else:
+                buffer.append(line)
+        flush()
     return out
 
 
