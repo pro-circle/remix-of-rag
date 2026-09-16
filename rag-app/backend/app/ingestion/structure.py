@@ -49,12 +49,15 @@ def _blocks_for_page(page: DocumentPage) -> list[Block]:
                 out.append(Block(text="\n".join(buffer).strip(), block_type="paragraph", level=0))
                 buffer.clear()
 
-        for line in lines:
-            # A heading only counts when it stands on its own line.
-            lvl = heading_level(line) if _NUMBERED.match(line.strip()) or line.strip().startswith("#") else 0
-            if lvl and (len(lines) == 1 or line is lines[0] or True):
+        for index, line in enumerate(lines):
+            stripped = line.strip()
+            standalone = len(lines) == 1
+            explicit = bool(_NUMBERED.match(stripped)) or stripped.startswith("#") or bool(_ALLCAPS.match(stripped))
+            lvl = heading_level(line) if (standalone or explicit) else 0
+            # Inside a paragraph, only an explicit heading marker breaks the text apart.
+            if lvl and (standalone or (explicit and (index == 0 or not buffer or True))):
                 flush()
-                out.append(Block(text=line.strip(), block_type="heading", level=lvl))
+                out.append(Block(text=stripped, block_type="heading", level=lvl))
             else:
                 buffer.append(line)
         flush()
