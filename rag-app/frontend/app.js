@@ -14,15 +14,6 @@ const STAGES = [
   ["generate", "Generation"],
 ];
 
-const EXAMPLES = [
-  "What are the main authentication requirements?",
-  "What security risks are mentioned?",
-  "Which sections discuss access control?",
-  "Compare authentication and authorization requirements.",
-  "What does the document say about incident response?",
-  "Summarize the security recommendations.",
-];
-
 const state = {
   docs: [],
   selected: new Set(JSON.parse(sessionStorage.getItem("rag_selected") || "[]")),
@@ -30,6 +21,9 @@ const state = {
   answer: "",
   busy: false,
   defaultPrompt: "",
+  activeDocument: null,
+  previewToken: 0,
+  streamNode: null,
 };
 
 /* ---------- helpers ---------- */
@@ -139,11 +133,23 @@ function renderDocs() {
       </li>`).join("");
   }
   $("metaDocs").textContent = `${state.docs.length} document${state.docs.length === 1 ? "" : "s"}`;
+  renderSuggestions();
+}
+
+function renderSuggestions() {
+  const selected = state.docs.find((d) => state.selected.has(d.document_id));
+  const suggestions = selected?.suggestions || [];
+  $("examples").innerHTML = suggestions.length
+    ? suggestions.map((q) => `<button type="button" data-example="${esc(q)}">${esc(q)}</button>`).join("")
+    : '<span class="hint">Select a document to see suggested questions.</span>';
 }
 
 async function loadDocs() {
   state.docs = await api("/api/documents");
   for (const id of [...state.selected]) if (!state.docs.some((d) => d.document_id === id)) state.selected.delete(id);
+  if (!state.selected.size && state.docs.length === 1) state.selected.add(state.docs[0].document_id);
+  if (state.selected.size > 1) state.selected = new Set([[...state.selected][0]]);
+  sessionStorage.setItem("rag_selected", JSON.stringify([...state.selected]));
   renderDocs();
 }
 
@@ -172,33 +178,40 @@ async function uploadFile(file) {
 }
 
 async function openDocument(id) {
+  const requestToken = ++state.previewToken;
+  const panel = document.querySelector(".preview");
+  panel.classList.add("loading");
+  $("previewBody").textContent = "Loading page…";
   try {
     const doc = await api(`/api/documents/${id}`);
+    if (requestToken !== state.previewToken) return;
+    state.activeDocument = doc;
     $("previewTitle").textContent = doc.name;
     $("previewMeta").textContent = `${doc.pages} page(s) · ${doc.chunks} chunks · ${doc.extension}`;
     const pageSel = $("pageSelect"), secSel = $("sectionSelect");
-    const pages = doc.pages_text || [];
-    pageSel.innerHTML = pages.map((p) => `<option value="${p.page}">Page ${p.page}</option>`).join("");
-    pageSel.classList.toggle("hidden", pages.length < 2);
-    secSel.innerHTML = '<option value="">Jump to section…</option>' + (doc.sections || []).map((s) => `<option>${esc(s)}</option>`).join("");
+    pageSel.innerHTML = Array.from({ length: doc.pages }, (_, i) => `<option value="${i + 1}">Page ${i + 1}</option>`).join("");
+    pageSel.classList.toggle("hidden", doc.pages < 2);
+    secSel.innerHTML = '<option value="">Jump to section…</option>' + (doc.sections || []).map((s) => `<option value="${s.page}">${esc(s.title)}</option>`).join("");
     secSel.classList.toggle("hidden", !(doc.sections || []).length);
-    const show = (page) => {
-      const hit = pages.find((p) => String(p.page) === String(page)) || pages[0];
-      $("previewBody").textContent = hit ? hit.text : "No extracted text.";
+    const show = async (page) => {
+      const pageToken = ++state.previewToken;
+      panel.classList.add("loading");
+      $("previewBody").textContent = "Loading page…";
+      try {
+        const hit = await api(`/api/documents/${id}/pages/${page}`);
+        if (pageToken !== state.previewToken) return;
+        $("previewBody").textContent = hit.text || "No extracted text.";
+      } catch (err) { if (pageToken === state.previewToken) toast(err.message, true); }
+      finally { if (pageToken === state.previewToken) panel.classList.remove("loading"); }
     };
     pageSel.onchange = () => show(pageSel.value);
     secSel.onchange = () => {
-      const body = $("previewBody"), term = secSel.value;
-      if (!term) return;
-      const idx = body.textContent.indexOf(term);
-      if (idx >= 0) {
-        body.innerHTML = esc(body.textContent.slice(0, idx)) + `<mark>${esc(term)}</mark>` + esc(body.textContent.slice(idx + term.length));
-        body.querySelector("mark").scrollIntoView({ block: "center" });
-      }
+      if (!secSel.value) return;
+      pageSel.value = secSel.value;
+      show(secSel.value);
     };
-    show(pages[0]?.page);
-    $("previewTitle").scrollIntoView({ behavior: "smooth", block: "nearest" });
-  } catch (err) { toast(err.message, true); }
+    show(1);
+  } catch (err) { panel.classList.remove("loading"); toast(err.message, true); }
 }
 
 /* ---------- workflow ---------- */
@@ -273,9 +286,11 @@ async function ask() {
   state.busy = true; $("askBtn").disabled = true; $("askBtn").textContent = "Working…";
 
   state.answer = ""; state.chunks = [];
+  $("userMessage").textContent = query;
+  $("userMessage").classList.remove("hidden");
   resetStages(); renderChunks();
   $("citations").innerHTML = "";
-  $("answerBody").innerHTML = '<p class="hint">Analyzing query…<span class="caret"></span></p>';
+  $("answerBody").innerHTML = '<p class="hint">Thinking through the selected document…<span class="caret"></span></p>';
   setStage("analyze", "active", "analyzing");
 
   const payload = {
@@ -314,7 +329,7 @@ async function ask() {
     toast(err.message, true);
     setStage("generate", "failed", "failed");
   } finally {
-    state.busy = false; $("askBtn").disabled = false; $("askBtn").textContent = "Ask";
+    state.busy = false; $("askBtn").disabled = false; $("askBtn").textContent = "Generate ↑";
   }
 }
 
@@ -342,7 +357,14 @@ function handleEvent(event, data) {
       setStage("generate", "active", "streaming"); break;
     case "token":
       state.answer += data.text;
-      $("answerBody").innerHTML = renderMarkdown(state.answer) + '<span class="caret"></span>';
+      if (!state.streamNode) {
+        $("answerBody").textContent = "";
+        state.streamNode = document.createElement("div");
+        state.streamNode.className = "stream-text";
+        $("answerBody").append(state.streamNode);
+      }
+      state.streamNode.textContent = state.answer;
+      $("chatScroll").scrollTop = $("chatScroll").scrollHeight;
       break;
     case "generation_complete":
       setStage("generate", "done", ms(data.duration_ms)); break;
@@ -350,6 +372,7 @@ function handleEvent(event, data) {
       renderUsage(data.usage, data.latency); renderSession(data.session); break;
     case "query_complete":
       state.answer = data.answer;
+      state.streamNode = null;
       $("answerBody").innerHTML = renderMarkdown(state.answer);
       state.chunks = data.chunks || []; renderChunks();
       renderCitations(data.citations);
@@ -379,7 +402,7 @@ function jumpToCitation(index) {
 /* ---------- init ---------- */
 async function init() {
   resetStages();
-  $("examples").innerHTML = EXAMPLES.map((q) => `<button type="button" data-example="${esc(q)}">${esc(q)}</button>`).join("");
+  renderSuggestions();
 
   try {
     const health = await api("/api/health");
@@ -409,12 +432,16 @@ async function init() {
   $("askBtn").onclick = ask;
   $("fileInput").onchange = (e) => { const f = e.target.files[0]; if (f) uploadFile(f); e.target.value = ""; };
   $("promptToggle").onclick = () => $("promptBox").classList.toggle("hidden");
-  $("queryInput").onkeydown = (e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) ask(); };
+  $("previewToggle").onclick = () => {
+    document.querySelector(".preview").classList.toggle("collapsed");
+    $("previewToggle").textContent = document.querySelector(".preview").classList.contains("collapsed") ? "⌄" : "⌃";
+  };
+  $("queryInput").onkeydown = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(); } };
 
   document.addEventListener("click", async (e) => {
     const t = e.target.closest("[data-example],[data-open],[data-del],[data-cite]");
     if (!t) return;
-    if (t.dataset.example) { $("queryInput").value = t.dataset.example; $("queryInput").focus(); }
+    if (t.dataset.example) { $("queryInput").value = t.dataset.example; ask(); }
     else if (t.dataset.open) openDocument(t.dataset.open);
     else if (t.dataset.cite) jumpToCitation(t.dataset.cite);
     else if (t.dataset.del) {
@@ -427,8 +454,11 @@ async function init() {
   document.addEventListener("change", (e) => {
     const id = e.target.dataset?.select;
     if (!id) return;
-    e.target.checked ? state.selected.add(id) : state.selected.delete(id);
+    state.selected.clear();
+    if (e.target.checked) state.selected.add(id);
     sessionStorage.setItem("rag_selected", JSON.stringify([...state.selected]));
+    renderDocs();
+    if (e.target.checked) openDocument(id);
   });
 }
 

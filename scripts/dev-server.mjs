@@ -7,7 +7,7 @@ import { join, extname } from "node:path";
 const args = process.argv.slice(2);
 const portFlag = args.indexOf("--port");
 const port = Number(portFlag !== -1 ? args[portFlag + 1] : process.env.PORT || 8080);
-const root = join(process.cwd(), "site");
+const root = join(process.cwd(), "rag-app", "frontend");
 
 const types = {
   ".html": "text/html; charset=utf-8",
@@ -20,6 +20,7 @@ const types = {
 createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", "http://localhost");
   let path = decodeURIComponent(url.pathname);
+  if (path.startsWith("/static/")) path = path.slice(7);
   if (path.endsWith("/")) path += "index.html";
   try {
     const file = await readFile(join(root, path));
