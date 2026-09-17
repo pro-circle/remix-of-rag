@@ -411,6 +411,8 @@ function jumpToCitation(index) {
 async function init() {
   resetStages();
   renderSuggestions();
+  rows("usageTable", [["Query tokens", "—"], ["Retrieval context", "—"], ["Generator input", "—"], ["Generator output", "—"], ["Total", "—"]]);
+  rows("latencyTable", [["Analysis", "—"], ["Retrieval", "—"], ["Reranking", "—"], ["Generation", "—"], ["Total", "—"]]);
 
   try {
     const health = await api("/api/health");
