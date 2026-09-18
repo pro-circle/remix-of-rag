@@ -6,5 +6,12 @@
     "build": "node scripts/build.mjs",
     "build:dev": "node scripts/build.mjs",
     "typecheck": "echo \"no typescript in this project\""
+  },
+  "devDependencies": {
+    "vite": "^8.3.0"
+  },
+  "dependencies": {
+    "mammoth": "^1.12.3",
+    "pdfjs-dist": "^6.3.289"
   }
 }
